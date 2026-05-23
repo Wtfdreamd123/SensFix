@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SensFix — точный конвертер чувствительности мыши</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: {} }
+  }
+</script>
+<style>
+  * { transition: background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-1 { animation: fadeInUp .6s ease-out both; animation-delay: .05s; }
+  .fade-2 { animation: fadeInUp .7s ease-out both; animation-delay: .25s; }
+  .fade-3 { animation: fadeInUp .8s ease-out both; animation-delay: .45s; }
+
+  /* ========= DARK MODE (премиум-стиль) ========= */
+  html.dark body {
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(37,99,235,0.18), transparent 60%), #02040a;
+  }
+  html.dark .card {
+    background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(2,6,23,0.9));
+    border: 1px solid rgba(59,130,246,0.25);
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.08), 0 10px 40px -10px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  html.dark .neon-input {
+    background: rgba(2,6,23,0.7);
+    border: 1px solid rgba(59,130,246,0.35);
+    color: #e2e8f0;
+  }
+  html.dark .neon-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.25), 0 0 20px rgba(59,130,246,0.45);
+    outline: none;
+  }
+  html.dark .neon-btn {
+    background: linear-gradient(180deg, #2563eb, #1d4ed8);
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.4), 0 0 25px rgba(37,99,235,0.55);
+  }
+  html.dark .neon-btn:hover { box-shadow: 0 0 0 1px rgba(96,165,250,0.6), 0 0 35px rgba(37,99,235,0.85); }
+  html.dark .header-btn {
+    background: rgba(2,6,23,0.7);
+    border: 1px solid rgba(59,130,246,0.3);
+    color: #cbd5e1;
+  }
+  html.dark .header-btn:hover { box-shadow: 0 0 20px rgba(59,130,246,0.45); border-color:#3b82f6; }
+  html.dark .label { color:#94a3b8; }
+  html.dark .title { color:#f1f5f9; }
+  html.dark .subtitle { color:#64748b; }
+  html.dark .result-box {
+    background: rgba(2,6,23,0.7);
+    border: 1px solid rgba(59,130,246,0.4);
+    box-shadow: inset 0 0 30px rgba(37,99,235,0.15), 0 0 25px rgba(37,99,235,0.25);
+    color: #60a5fa;
+  }
+  html.dark select.neon-input option { background:#0f172a; color:#e2e8f0; }
+
+  /* ========= LIGHT MODE — УЛУЧШЕННЫЕ ГРАНИЦЫ, ОБЪЁМ (как в dark) ========= */
+  html:not(.dark) body {
+    background: #eef2f8;
+  }
+  html:not(.dark) .card {
+    background: #ffffff;
+    border: 1.5px solid #b9d0f0;
+    box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0,0,0,0.02);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  html:not(.dark) .card:hover {
+    border-color: #9bb8e6;
+    box-shadow: 0 18px 32px -12px rgba(37, 99, 235, 0.12);
+  }
+  html:not(.dark) .result-box {
+    background: #f5faff;
+    border: 1.5px solid #3b82f6;
+    box-shadow: inset 0 0 0 1px rgba(59,130,246,0.2), 0 4px 14px rgba(59,130,246,0.08);
+    color: #1e40af;
+  }
+  html:not(.dark) .result-box div:first-child {
+    color: #2563eb;
+    font-weight: 600;
+  }
+  html:not(.dark) .result-box #resultOut {
+    color: #0f2b6d;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+  }
+  html:not(.dark) .neon-input {
+    background: #ffffff;
+    border: 1.5px solid #cbd5e6;
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  html:not(.dark) .neon-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.25), 0 0 0 1px #2563eb inset;
+    outline: none;
+    background-color: #ffffff;
+  }
+  html:not(.dark) select.neon-input option {
+    background: white;
+    color: #0f172a;
+  }
+  html:not(.dark) .neon-btn {
+    background: linear-gradient(180deg, #2563eb, #1e4fd0);
+    color: #ffffff;
+    border: 1px solid #1e3a8a;
+    box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59,130,246,0.3) inset;
+  }
+  html:not(.dark) .neon-btn:hover {
+    background: linear-gradient(180deg, #3178f2, #1e4fd0);
+    box-shadow: 0 6px 14px -4px #2563eb50;
+    transform: translateY(-1px);
+    border-color: #1e3a8a;
+  }
+  html:not(.dark) .neon-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px -1px rgba(0,0,0,0.2);
+  }
+  html:not(.dark) .header-btn {
+    background: #ffffff;
+    border: 1.5px solid #cbd5e6;
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  html:not(.dark) .header-btn:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.15);
+  }
+  html:not(.dark) .label {
+    color: #1e293b;
+    font-weight: 500;
+  }
+  html:not(.dark) .title {
+    color: #0f172a;
+    font-weight: 700;
+  }
+  html:not(.dark) .subtitle {
+    color: #475569;
+  }
+  html:not(.dark) #cmFromOut, html:not(.dark) #cmToOut {
+    color: #0f2b6d;
+  }
+
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%) translateY(20px);
+    bottom: 24px; padding: 10px 18px; border-radius: 10px;
+    background:#2563eb; color:#fff; opacity:0; pointer-events:none;
+    transition: opacity .3s ease, transform .3s ease; z-index: 50;
+    box-shadow: 0 0 25px rgba(37,99,235,0.6);
+  }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(0); pointer-events:auto; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <!-- Header: бренд SensFix -->
+  <header class="fade-1 flex items-center justify-between mb-8">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center neon-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v5"/></svg>
+      </div>
+      <span class="title font-bold text-lg" data-i18n="brand">SensFix</span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <select id="langSelect" class="header-btn rounded-lg px-3 py-2 text-sm cursor-pointer hover:scale-105 active:scale-95">
+        <option value="ru">RU</option>
+        <option value="en">EN</option>
+        <option value="de">DE</option>
+        <option value="es">ES</option>
+        <option value="zh">ZH</option>
+      </select>
+      <button id="themeToggle" class="header-btn rounded-lg w-10 h-10 flex items-center justify-center hover:scale-105 active:scale-95" aria-label="Toggle theme">
+        <svg id="iconMoon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="iconSun" class="hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Calculator -->
+  <main class="card fade-2 rounded-2xl p-6 md:p-8 mb-6">
+    <h1 class="title text-2xl md:text-3xl font-bold mb-2 text-balance" data-i18n="title">Конвертер чувствительности мыши</h1>
+    <p class="subtitle mb-6 text-sm" data-i18n="subtitle">Мгновенный пересчёт между играми</p>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="label text-sm font-medium block mb-2" data-i18n="fromGame">Исходная игра</label>
+        <select id="fromGame" class="neon-input w-full rounded-lg px-3 py-2.5 text-sm"></select>
+      </div>
+      <div>
+        <label class="label text-sm font-medium block mb-2" data-i18n="toGame">Целевая игра</label>
+        <select id="toGame" class="neon-input w-full rounded-lg px-3 py-2.5 text-sm"></select>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="label text-sm font-medium block mb-2" data-i18n="sens">Чувствительность</label>
+        <input id="sensIn" type="number" step="any" min="0" value="3.94" class="neon-input w-full rounded-lg px-3 py-2.5 text-sm" />
+      </div>
+      <div>
+        <label class="label text-sm font-medium block mb-2" data-i18n="dpi">DPI мыши</label>
+        <input id="dpiIn" type="number" step="any" min="1" value="400" class="neon-input w-full rounded-lg px-3 py-2.5 text-sm" />
+      </div>
+    </div>
+
+    <div class="result-box rounded-xl px-5 py-5 mb-4 text-center">
+      <div class="label text-xs uppercase tracking-wider mb-1 font-semibold" data-i18n="result">Результат</div>
+      <div id="resultOut" class="text-3xl md:text-4xl font-bold tabular-nums">0.3769</div>
+    </div>
+
+    <button id="copyBtn" class="neon-btn w-full rounded-xl py-3 font-semibold hover:scale-[1.02] active:scale-95" data-i18n="copy">
+      Скопировать результат
+    </button>
+  </main>
+
+  <!-- Info panel (physical metrics) -->
+  <section class="card fade-3 rounded-2xl p-6">
+    <h2 class="title font-semibold mb-4" data-i18n="physical">Физические показатели</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <div class="label text-xs uppercase tracking-wider mb-1" data-i18n="cmFrom">CM/360 (исходная)</div>
+        <div id="cmFromOut" class="title text-xl font-bold tabular-nums">26.37 cm</div>
+      </div>
+      <div>
+        <div class="label text-xs uppercase tracking-wider mb-1" data-i18n="cmTo">CM/360 (целевая)</div>
+        <div id="cmToOut" class="title text-xl font-bold tabular-nums">26.37 cm</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // ===== Games & Yaw =====
+  const GAMES = [
+    { id: 'cs2',       name: 'Counter-Strike 2',  yaw: 0.022 },
+    { id: 'csgo',      name: 'CS:GO',             yaw: 0.022 },
+    { id: 'css',       name: 'CS:S',              yaw: 0.022 },
+    { id: 'cs16',      name: 'CS 1.6',            yaw: 0.022 },
+    { id: 'gmod',      name: "Garry's Mod",       yaw: 0.022 },
+    { id: 'apex',      name: 'Apex Legends',      yaw: 0.022 },
+    { id: 'tf2',       name: 'Team Fortress 2',   yaw: 0.022 },
+    { id: 'valorant',  name: 'Valorant',          yaw: 0.07 },
+    { id: 'fortnite',  name: 'Fortnite',          yaw: 0.5555, isPercent: true },
+    { id: 'minecraft', name: 'Minecraft Java Edition', yaw: 0.087 },
+    { id: 'bf6',       name: 'Battlefield 6',     yaw: 0.022 },
+    { id: 'roblox',    name: 'Roblox',            yaw: 0.23 },
+    { id: 'ow2',       name: 'Overwatch 2',       yaw: 0.0066 },
+    { id: 'finals',    name: 'The Finals',        yaw: 0.0125 },
+    { id: 'pubg',      name: 'PUBG',              yaw: 0.002222 },
+    { id: 'tarkov',    name: 'Escape from Tarkov',yaw: 0.0055 },
+  ];
+
+  // ===== i18n с заменой бренда на SensFix (везде) =====
+  const I18N = {
+    ru: {
+      brand: 'SensFix',
+      title: 'Конвертер чувствительности мыши',
+      subtitle: 'Мгновенный пересчёт между играми',
+      fromGame: 'Исходная игра',
+      toGame: 'Целевая игра',
+      sens: 'Чувствительность',
+      dpi: 'DPI мыши',
+      result: 'Результат',
+      copy: 'Скопировать результат',
+      physical: 'Физические показатели',
+      cmFrom: 'CM/360 (исходная)',
+      cmTo: 'CM/360 (целевая)',
+      copied: 'Скопировано!',
+      sensPh: 'Например, 2.5',
+      dpiPh: 'Например, 800',
+    },
+    en: {
+      brand: 'SensFix',
+      title: 'Mouse Sensitivity Converter',
+      subtitle: 'Instant conversion between games',
+      fromGame: 'Source game',
+      toGame: 'Target game',
+      sens: 'Sensitivity',
+      dpi: 'Mouse DPI',
+      result: 'Result',
+      copy: 'Copy result',
+      physical: 'Physical metrics',
+      cmFrom: 'CM/360 (source)',
+      cmTo: 'CM/360 (target)',
+      copied: 'Copied!',
+      sensPh: 'e.g. 2.5',
+      dpiPh: 'e.g. 800',
+    },
+    de: {
+      brand: 'SensFix',
+      title: 'Maus-Empfindlichkeits-Konverter',
+      subtitle: 'Sofortige Umrechnung zwischen Spielen',
+      fromGame: 'Ausgangsspiel',
+      toGame: 'Zielspiel',
+      sens: 'Empfindlichkeit',
+      dpi: 'Maus-DPI',
+      result: 'Ergebnis',
+      copy: 'Ergebnis kopieren',
+      physical: 'Physikalische Werte',
+      cmFrom: 'CM/360 (Ausgang)',
+      cmTo: 'CM/360 (Ziel)',
+      copied: 'Kopiert!',
+      sensPh: 'z. B. 2.5',
+      dpiPh: 'z. B. 800',
+    },
+    es: {
+      brand: 'SensFix',
+      title: 'Conversor de sensibilidad del ratón',
+      subtitle: 'Conversión instantánea entre juegos',
+      fromGame: 'Juego de origen',
+      toGame: 'Juego de destino',
+      sens: 'Sensibilidad',
+      dpi: 'DPI del ratón',
+      result: 'Resultado',
+      copy: 'Copiar resultado',
+      physical: 'Datos físicos',
+      cmFrom: 'CM/360 (origen)',
+      cmTo: 'CM/360 (destino)',
+      copied: '¡Copiado!',
+      sensPh: 'p. ej. 2.5',
+      dpiPh: 'p. ej. 800',
+    },
+    zh: {
+      brand: 'SensFix',
+      title: '鼠标灵敏度转换器',
+      subtitle: '游戏之间即时换算',
+      fromGame: '源游戏',
+      toGame: '目标游戏',
+      sens: '灵敏度',
+      dpi: '鼠标 DPI',
+      result: '结果',
+      copy: '复制结果',
+      physical: '物理数据',
+      cmFrom: 'CM/360（源）',
+      cmTo: 'CM/360（目标）',
+      copied: '已复制！',
+      sensPh: '例如 2.5',
+      dpiPh: '例如 800',
+    },
+  };
+
+  // ===== DOM elements =====
+  const fromGameEl = document.getElementById('fromGame');
+  const toGameEl   = document.getElementById('toGame');
+  const sensIn     = document.getElementById('sensIn');
+  const dpiIn      = document.getElementById('dpiIn');
+  const resultOut  = document.getElementById('resultOut');
+  const cmFromOut  = document.getElementById('cmFromOut');
+  const cmToOut    = document.getElementById('cmToOut');
+  const copyBtn    = document.getElementById('copyBtn');
+  const langSelect = document.getElementById('langSelect');
+  const themeBtn   = document.getElementById('themeToggle');
+  const iconSun    = document.getElementById('iconSun');
+  const iconMoon   = document.getElementById('iconMoon');
+  const toast      = document.getElementById('toast');
+
+  // Populate game selects
+  function populateGames() {
+    [fromGameEl, toGameEl].forEach(sel => {
+      sel.innerHTML = GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    });
+    fromGameEl.value = 'cs2';
+    toGameEl.value   = 'roblox';
+  }
+
+  function getGame(id){ return GAMES.find(g => g.id === id); }
+
+  function normalizeSens(game, value) {
+    if (!game) return value;
+    if (game.id === 'fortnite' && Number.isFinite(value) && value >= 1) {
+      return value / 100;
+    }
+    return value;
+  }
+
+  // Core conversion + CM/360 update
+  function calc() {
+    const from = getGame(fromGameEl.value);
+    const to   = getGame(toGameEl.value);
+    const rawSens = parseFloat(sensIn.value);
+    const dpi  = parseFloat(dpiIn.value);
+
+    if (!from || !to || !Number.isFinite(rawSens) || rawSens <= 0) {
+      resultOut.textContent = '0.000';
+      cmFromOut.textContent = '—';
+      cmToOut.textContent = '—';
+      return;
+    }
+
+    const sens = normalizeSens(from, rawSens);
+    let sensTarget = (sens * from.yaw) / to.yaw;
+    let displayTarget = sensTarget;
+    if (to.id === 'fortnite') {
+      displayTarget = sensTarget * 100;
+    }
+    resultOut.textContent = displayTarget.toFixed(4).replace(/\.?0+$/, '') || '0';
+
+    if (Number.isFinite(dpi) && dpi > 0) {
+      const cmFrom = (2.54 * 360) / (sens * from.yaw * dpi);
+      const cmTo   = (2.54 * 360) / (sensTarget * to.yaw * dpi);
+      cmFromOut.textContent = cmFrom.toFixed(2) + ' cm';
+      cmToOut.textContent   = cmTo.toFixed(2) + ' cm';
+    } else {
+      cmFromOut.textContent = '—';
+      cmToOut.textContent = '—';
+    }
+  }
+
+  // Event listeners
+  ['input','change'].forEach(ev => {
+    sensIn.addEventListener(ev, calc);
+    dpiIn.addEventListener(ev, calc);
+    fromGameEl.addEventListener(ev, calc);
+    toGameEl.addEventListener(ev, calc);
+  });
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+
+  copyBtn.addEventListener('click', async () => {
+    const text = resultOut.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch {}
+      document.body.removeChild(ta);
+    }
+    const lang = langSelect.value;
+    showToast(I18N[lang].copied);
+  });
+
+  // ===== i18n apply =====
+  function applyLang(lang) {
+    const dict = I18N[lang] || I18N.en;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict[key] != null) el.textContent = dict[key];
+    });
+    sensIn.placeholder = dict.sensPh;
+    dpiIn.placeholder  = dict.dpiPh;
+    document.documentElement.lang = lang;
+    localStorage.setItem('msc_lang', lang);
+  }
+
+  langSelect.addEventListener('change', () => applyLang(langSelect.value));
+
+  // ===== Theme toggle =====
+  function setTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.remove('dark');
+      iconSun.classList.add('hidden');
+      iconMoon.classList.remove('hidden');
+    } else {
+      root.classList.add('dark');
+      iconMoon.classList.add('hidden');
+      iconSun.classList.remove('hidden');
+    }
+    localStorage.setItem('msc_theme', theme);
+  }
+  themeBtn.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    setTheme(isDark ? 'light' : 'dark');
+  });
+
+  // ===== Initialization =====
+  populateGames();
+  const savedLang = localStorage.getItem('msc_lang') || 'ru';
+  langSelect.value = savedLang;
+  applyLang(savedLang);
+  const savedTheme = localStorage.getItem('msc_theme') || 'dark';
+  setTheme(savedTheme);
+  calc();
+</script>
+</body>
+</html>
