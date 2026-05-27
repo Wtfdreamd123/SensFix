@@ -264,9 +264,14 @@
     { id: 'finals',    name: 'The Finals',        yaw: 0.0125 },
     { id: 'pubg',      name: 'PUBG',              yaw: 0.002222 },
     { id: 'tarkov',    name: 'Escape from Tarkov',yaw: 0.0055 },
+    // === НОВЫЕ ИГРЫ ===
+    { id: 'fistful',   name: 'Fistful of Frags', yaw: 0.022 },
+    { id: 'rust',      name: 'Rust',             yaw: 0.1125 },
+    { id: 'redmatch2', name: 'Redmatch 2',       yaw: 0.05 },
+    { id: 'dayz',      name: 'DayZ',             yaw: 0.001375 }  // ⚠️ зависит от FOV
   ];
 
-  // ===== i18n с заменой бренда на SensFix (везде) =====
+  // ===== i18n =====
   const I18N = {
     ru: {
       brand: 'SensFix',
@@ -284,6 +289,7 @@
       copied: 'Скопировано!',
       sensPh: 'Например, 2.5',
       dpiPh: 'Например, 800',
+      dayzWarning: '⚠️ DayZ: результат без учёта FOV приблизителен'
     },
     en: {
       brand: 'SensFix',
@@ -301,6 +307,7 @@
       copied: 'Copied!',
       sensPh: 'e.g. 2.5',
       dpiPh: 'e.g. 800',
+      dayzWarning: '⚠️ DayZ: result without FOV is approximate'
     },
     de: {
       brand: 'SensFix',
@@ -318,6 +325,7 @@
       copied: 'Kopiert!',
       sensPh: 'z. B. 2.5',
       dpiPh: 'z. B. 800',
+      dayzWarning: '⚠️ DayZ: Ergebnis ohne FOV ist ungefähr'
     },
     es: {
       brand: 'SensFix',
@@ -335,6 +343,7 @@
       copied: '¡Copiado!',
       sensPh: 'p. ej. 2.5',
       dpiPh: 'p. ej. 800',
+      dayzWarning: '⚠️ DayZ: resultado sin FOV es aproximado'
     },
     zh: {
       brand: 'SensFix',
@@ -352,6 +361,7 @@
       copied: '已复制！',
       sensPh: '例如 2.5',
       dpiPh: '例如 800',
+      dayzWarning: '⚠️ DayZ: 未考虑视野(FOV)的结果为近似值'
     },
   };
 
@@ -422,19 +432,29 @@
     }
   }
 
+  // Предупреждение для DayZ (зависимость от FOV)
+  function checkDayZWarning() {
+    const lang = langSelect.value;
+    const fromId = fromGameEl.value;
+    const toId = toGameEl.value;
+    if (fromId === 'dayz' || toId === 'dayz') {
+      showToast(I18N[lang]?.dayzWarning || I18N.en.dayzWarning, 3000);
+    }
+  }
+
   // Event listeners
   ['input','change'].forEach(ev => {
     sensIn.addEventListener(ev, calc);
     dpiIn.addEventListener(ev, calc);
-    fromGameEl.addEventListener(ev, calc);
-    toGameEl.addEventListener(ev, calc);
+    fromGameEl.addEventListener(ev, () => { calc(); checkDayZWarning(); });
+    toGameEl.addEventListener(ev,   () => { calc(); checkDayZWarning(); });
   });
 
-  function showToast(msg) {
+  function showToast(msg, duration = 1600) {
     toast.textContent = msg;
     toast.classList.add('show');
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), duration);
   }
 
   copyBtn.addEventListener('click', async () => {
@@ -493,6 +513,8 @@
   const savedTheme = localStorage.getItem('msc_theme') || 'dark';
   setTheme(savedTheme);
   calc();
+  // сразу проверим DayZ при старте (если выбрана)
+  checkDayZWarning();
 </script>
 </body>
 </html>
